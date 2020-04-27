@@ -3,10 +3,13 @@ local window = {}
 window.prototype = {}
 window.prototype.subwindows = {}
 -- 0 = NONE, 1 = HOZ, 2 = VERT
+-- STUB
 window.prototype.splitdir = 0
 
+window.prototype.cursors = {}
+
 window.prototype.path = "./default.txt"
-window.prototype.contents = "Blank file"
+window.prototype.contents = {"Blank file"}
 
 window.mt = {}
 window.mt.__index = window.prototype

@@ -3,13 +3,15 @@ local window = require "window"
 
 local renderer = {}
 renderer.windows = {}
-renderer.cursed_windows = {}
 
 function renderer:init()
+    -- Rather than using curses window management system, everything will be drawn with self.scr
     self.scr = curses.initscr()
+    
     curses.cbreak()
     curses.echo(false)
     curses.nl(false)
+    curses.curs_set(0)
     self.scr:immedok(true)
     self.scr:clear()
     
@@ -24,7 +26,13 @@ function renderer:getch()
 end
 
 function renderer:redraw()
-    self.scr:mvaddstr(1,1,self.windows[1].contents)
+    -- Right now only one window is supported
+    self.scr:clear()
+    for i, v in ipairs(self.windows[1].contents) do
+        cs = curses.chstr(string.len(v))
+        cs:set_str(0, v, curses.A_NORMAL)
+        self.scr:mvaddchstr(i,0,cs)
+    end
 end
 
 function renderer:exit()

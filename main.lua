@@ -7,7 +7,7 @@ local window = require "window"
 local function main()
     -- Init
     renderer:init()
-    
+
     renderer:redraw()
 
     while true do
@@ -16,8 +16,6 @@ local function main()
     end
 
     renderer:exit()
-    
-    print(renderer.windows[1].contents)
 end
 
 
