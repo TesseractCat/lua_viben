@@ -6,8 +6,8 @@ local window = require "window"
 
 local function main()
     -- Init
-    input:init()
     renderer:init()
+    input:init()
 
     -- Initial draw
     renderer:redraw(input)

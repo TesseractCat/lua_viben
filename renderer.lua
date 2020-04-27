@@ -41,11 +41,15 @@ function renderer:redraw(e)
             cs:set_str(0, v, curses.A_NORMAL)
         end
         
-        --for k, c in ipairs(e.cursors) do
-        --    --if c.line == i then
-        --    --    --cs:set_ch(c.horizontal, "O", curses.A_UNDERLINE)
-        --    --end
-        --end
+        for k, c in ipairs(e.cursors) do
+            if c.line == i and string.sub(v,c.horizontal,c.horizontal) ~= nil then
+                if e.mode == 0 then
+                    cs:set_ch(c.horizontal-1, string.sub(v,c.horizontal,c.horizontal), curses.A_REVERSE)
+                elseif e.mode == 1 then
+                    cs:set_ch(c.horizontal-1, string.sub(v,c.horizontal,c.horizontal), curses.A_UNDERLINE)
+                end
+            end
+        end
         
         self.scr:mvaddchstr(i,0,cs)
     end
