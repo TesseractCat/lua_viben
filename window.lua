@@ -9,7 +9,7 @@ window.prototype.splitdir = 0
 window.prototype.cursors = {}
 
 window.prototype.path = "./default.txt"
-window.prototype.contents = {"Blank file"}
+window.prototype.contents = {"Blank file", "line 2"}
 
 window.mt = {}
 window.mt.__index = window.prototype

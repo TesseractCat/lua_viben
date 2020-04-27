@@ -6,13 +6,15 @@ local window = require "window"
 
 local function main()
     -- Init
+    input:init()
     renderer:init()
 
-    renderer:redraw()
-
+    -- Initial draw
+    renderer:redraw(input)
+    
     while true do
         input:loop()
-        renderer:redraw()
+        renderer:redraw(input)
     end
 
     renderer:exit()
