@@ -29,6 +29,9 @@ function cursor.prototype:move(dx, dy, e)
     if self.horizontal > string.len(e.active_window.contents[self.line]) then
         self.horizontal = string.len(e.active_window.contents[self.line])
     end
+    if string.len(e.active_window.contents[self.line]) == 0 then
+        self.horizontal = 1
+    end
 end
 
 return cursor

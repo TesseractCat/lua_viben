@@ -32,12 +32,17 @@ function renderer:redraw(e)
     self.scr:clear()
     
     -- Draw mode
-    self.scr:mvaddstr(1, 1, e.mode_names[e.mode + 1] .. " MODE")
+    mode_string = curses.chstr(string.len(e.mode_names[e.mode + 1] .. " MODE"))
+    mode_string:set_str(0, e.mode_names[e.mode + 1] .. " MODE", curses.A_BOLD)
+    _, width = self.scr:getmaxyx()
+    self.scr:mvaddchstr(1, math.floor(width/2 - mode_string:len()/2), mode_string)
     
     -- Draw lines
     for i, v in ipairs(self.windows[1].contents) do
+        self.scr:mvaddstr(i + 2, 1, tostring(i))
+        
         if string.len(v) < 1  then
-            goto continue
+            v = " "
         end
 
         cs = curses.chstr(string.len(v))
@@ -47,7 +52,7 @@ function renderer:redraw(e)
         if i == e.cursors[1].line then
             cs:set_str(0, v, curses.A_BOLD)
         else
-            cs:set_str(0, v, curses.A_NORMAL)
+            cs:set_str(0, v, curses.A_DIM)
         end
         
         for k, c in ipairs(e.cursors) do
@@ -60,7 +65,7 @@ function renderer:redraw(e)
             end
         end
         
-        self.scr:mvaddchstr(i + 2,1,cs)
+        self.scr:mvaddchstr(i + 2, 4,cs)
         
         ::continue::
     end
