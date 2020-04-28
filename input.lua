@@ -8,6 +8,8 @@ local input = {}
 -- 3 = Numerical, 4 = Verb-Adj
 input.mode_names = {"COMMAND", "INSERT", "VISUAL", "NUMERICAL", "VERB-ADJ"}
 input.mode = 0
+input.numerical_mode_data = 1
+
 input.active_window = nil
 
 -- Primary cursor should always be at idx = 1, order means nothing

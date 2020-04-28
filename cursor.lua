@@ -3,6 +3,7 @@ local cursor = {}
 cursor.prototype = {}
 cursor.prototype.line = 1
 cursor.prototype.horizontal = 1
+cursor.prototype.real_horizontal = 1
 cursor.prototype.length = 1
 
 cursor.mt = {}
@@ -15,7 +16,7 @@ function cursor:new(o)
 end
 
 function cursor.prototype:move(dx, dy, e)
-    self.horizontal = self.horizontal + dx
+    self.horizontal = self.real_horizontal + dx
     self.line = self.line + dy
     if self.line < 1 then
         self.line = 1
@@ -31,6 +32,10 @@ function cursor.prototype:move(dx, dy, e)
     end
     if string.len(e.active_window.contents[self.line]) == 0 then
         self.horizontal = 1
+    end
+    
+    if dx ~= 0 then
+        self.real_horizontal = self.horizontal
     end
 end
 

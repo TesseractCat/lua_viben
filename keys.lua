@@ -12,11 +12,23 @@ function input_mode_key(e, val)
     end
 end
 
-chars = " abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#$%^&*()-=+_[]{}|\\:;<>,.?/`~\'\""
-
+chars = " abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()-=+_[]{}|\\:;<>,.?/`~\'\""
 for c in chars:gmatch(".") do
     keys[c:byte(1)] = {handle=function(e)
         input_mode_key(e, c)
+    end}
+end
+
+nums = "123456789"
+for n in nums:gmatch(".") do
+    keys[n:byte(1)] = {handle=function(e)
+        input_mode_key(e, n)
+        if e.mode == 0 then
+            e.mode = 3
+            e.numerical_mode_data = tonumber(n)
+        elseif e.mode == 3 then
+            e.numerical_mode_data = tonumber(tostring(e.numerical_mode_data) .. n)
+        end
     end}
 end
 
@@ -26,6 +38,7 @@ function esc_handle(e)
         e.cursors[1]:move(-1, 0, e)
     end
     e.mode = 0
+    e.numerical_mode_data = 1
 end
 keys[27] = {handle=esc_handle}
 
@@ -97,9 +110,12 @@ keys[97] = {handle=a_handle}
 
 -- H
 function h_handle(e)
-    if e.mode == 0 then
+    if e.mode == 0 or e.mode == 3 then
         for i, c in ipairs(e.cursors) do
-            c:move(-1, 0, e)
+            c:move(-e.numerical_mode_data, 0, e)
+        end
+        if e.mode == 3 then
+            esc_handle(e)
         end
     end
     input_mode_key(e, "h")
@@ -108,9 +124,12 @@ keys[104] = {handle=h_handle}
 
 -- L
 function l_handle(e)
-    if e.mode == 0 then
+    if e.mode == 0 or e.mode == 3 then
         for i, c in ipairs(e.cursors) do
-            c:move(1, 0, e)
+            c:move(e.numerical_mode_data, 0, e)
+        end
+        if e.mode == 3 then
+            esc_handle(e)
         end
     end
     input_mode_key(e, "l")
@@ -119,9 +138,12 @@ keys[108] = {handle=l_handle}
  
 -- J
 function j_handle(e)
-    if e.mode == 0 then
+    if e.mode == 0 or e.mode == 3 then
         for i, c in ipairs(e.cursors) do
-            c:move(0, 1, e)
+            c:move(0, e.numerical_mode_data, e)
+        end
+        if e.mode == 3 then
+            esc_handle(e)
         end
     end
     input_mode_key(e, "j")
@@ -130,9 +152,12 @@ keys[106] = {handle=j_handle}
 
 -- K
 function k_handle(e)
-    if e.mode == 0 then
+    if e.mode == 0 or e.mode == 3 then
         for i, c in ipairs(e.cursors) do
-            c:move(0, -1, e)
+            c:move(0, -e.numerical_mode_data, e)
+        end
+        if e.mode == 3 then
+            esc_handle(e)
         end
     end
     input_mode_key(e, "k")
