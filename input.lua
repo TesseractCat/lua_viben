@@ -23,6 +23,8 @@ function input:loop()
     
     if keys[c] ~= nil then
         keys[c].handle(self)
+    else
+        self.active_window.contents[1] = self.active_window.contents[1] .. c .. ' '
     end
 end
 

@@ -13,6 +13,7 @@ function renderer:init()
     curses.nl(false)
     curses.curs_set(0)
     self.scr:immedok(true)
+    --self.scr:keypad(true)
     self.scr:clear()
     
     -- Default window, always present at startup...
@@ -39,11 +40,17 @@ function renderer:redraw(e)
     
     -- Draw lines
     for i, v in ipairs(self.windows[1].contents) do
-        self.scr:mvaddstr(i + 2, 1, tostring(i))
-        
-        if string.len(v) < 1  then
-            v = " "
+        if math.abs(i - e.cursors[1].line) ~= 0 then
+            self.scr:mvaddstr(i + 2, 2, tostring(math.abs(i - e.cursors[1].line)))
+        else
+            self.scr:mvaddstr(i + 2, 1, "=" .. tostring(i))
         end
+        
+        v = v .. " "
+        
+        --if string.len(v) < 1  then
+        --    v = " "
+        --end
 
         cs = curses.chstr(string.len(v))
         
@@ -57,15 +64,15 @@ function renderer:redraw(e)
         
         for k, c in ipairs(e.cursors) do
             if c.line == i and string.sub(v,c.horizontal,c.horizontal) ~= nil then
-                if e.mode == 0 then
+                if e.mode == 1 then
+                    cs:set_ch(c.horizontal-1, string.sub(v,c.horizontal,c.horizontal), curses.A_UNDERLINE)--curses.A_UNDERLINE)
+                else
                     cs:set_ch(c.horizontal-1, string.sub(v,c.horizontal,c.horizontal), curses.A_REVERSE)
-                elseif e.mode == 1 then
-                    cs:set_ch(c.horizontal-1, string.sub(v,c.horizontal,c.horizontal), curses.A_REVERSE)--curses.A_UNDERLINE)
                 end
             end
         end
         
-        self.scr:mvaddchstr(i + 2, 4,cs)
+        self.scr:mvaddchstr(i + 2, 5,cs)
         
         ::continue::
     end
