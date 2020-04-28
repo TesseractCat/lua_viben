@@ -30,7 +30,16 @@ end
 function renderer:redraw(e)
     -- Right now only one window is supported
     self.scr:clear()
+    
+    -- Draw mode
+    self.scr:mvaddstr(1, 1, e.mode_names[e.mode + 1] .. " MODE")
+    
+    -- Draw lines
     for i, v in ipairs(self.windows[1].contents) do
+        if string.len(v) < 1  then
+            goto continue
+        end
+
         cs = curses.chstr(string.len(v))
         
         --cs:set_str(0, v, curses.A_NORMAL)
@@ -46,12 +55,14 @@ function renderer:redraw(e)
                 if e.mode == 0 then
                     cs:set_ch(c.horizontal-1, string.sub(v,c.horizontal,c.horizontal), curses.A_REVERSE)
                 elseif e.mode == 1 then
-                    cs:set_ch(c.horizontal-1, string.sub(v,c.horizontal,c.horizontal), curses.A_UNDERLINE)
+                    cs:set_ch(c.horizontal-1, string.sub(v,c.horizontal,c.horizontal), curses.A_REVERSE)--curses.A_UNDERLINE)
                 end
             end
         end
         
-        self.scr:mvaddchstr(i,0,cs)
+        self.scr:mvaddchstr(i + 2,1,cs)
+        
+        ::continue::
     end
 end
 

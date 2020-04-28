@@ -4,7 +4,11 @@ local keys = {}
 
 function input_mode_key(e, val)
     if e.mode == 1 then
-        e.active_window.contents[e.cursors[1].line] = e.active_window.contents[e.cursors[1].line] .. val
+        --e.active_window.contents[e.cursors[1].line] = e.active_window.contents[e.cursors[1].line] .. val
+        e.cursors[1]:move(1,0,e)
+        line = e.active_window.contents[e.cursors[1].line]
+        line = line:sub(1, e.cursors[1].horizontal-1) .. val .. line:sub(e.cursors[1].horizontal)
+        e.active_window.contents[e.cursors[1].line] = line
     end
 end
 
@@ -18,6 +22,7 @@ keys[27] = {handle=esc_handle}
 function i_handle(e)
     input_mode_key(e, "i")
     if e.mode == 0 then
+        e.cursors[1]:move(-1, 0, e)
         e.mode = 1
     end
 end
@@ -58,5 +63,16 @@ function l_handle(e)
     input_mode_key(e, "k")
 end
 keys[107] = {handle=l_handle}
+
+-- X
+function x_handle(e)
+    if e.mode == 0 then
+        line = e.active_window.contents[e.cursors[1].line]
+        line = line:sub(1, e.cursors[1].horizontal - 1) .. line:sub(e.cursors[1].horizontal + 1)
+        e.active_window.contents[e.cursors[1].line] = line
+    end
+    input_mode_key(e, "x")
+end
+keys[120] = {handle=x_handle}
 
 return keys

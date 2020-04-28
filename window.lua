@@ -9,7 +9,15 @@ window.prototype.splitdir = 0
 window.prototype.cursors = {}
 
 window.prototype.path = "./default.txt"
-window.prototype.contents = {"Blank file", "line 2"}
+window.prototype.contents = {
+    "This is a scratch file",
+    "Use this file to enter any text you want",
+    "a",
+    "Here is an example function:",
+    "function rabbits(int babbit, int crabbit) {",
+    "    print('rabbit man')",
+    "}"
+}
 
 window.mt = {}
 window.mt.__index = window.prototype

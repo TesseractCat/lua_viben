@@ -5,6 +5,8 @@ local cursor = require "cursor"
 
 local input = {}
 -- 0 = Command, 1 = Insert, 2 = Visual (same for all cursors)
+-- 3 = Numerical, 4 = Verb-Adj
+input.mode_names = {"COMMAND", "INSERT", "VISUAL", "NUMERICAL", "VERB-ADJ"}
 input.mode = 0
 input.active_window = nil
 
