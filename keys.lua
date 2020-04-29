@@ -10,9 +10,12 @@ function input_mode_key(e, val)
         line = line:sub(1, e.cursors[1].horizontal-1) .. val .. line:sub(e.cursors[1].horizontal)
         e.active_window.contents[e.cursors[1].line] = line
         e.cursors[1]:move(val:len(),0,e)
+        return true
     elseif e.mode == 5 then
         e.active_window.status = e.active_window.status .. val
+        return true
     end
+    return false
 end
 
 chars = " abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()-=+_[]{}|\\:;<>,.?/`~\'\""
@@ -134,7 +137,7 @@ keys[58] = {handle=colon_handle}
 
 -- S
 function s_handle(e)
-    input_mode_key(e, 's')
+    if input_mode_key(e, 's') then return end
     x_handle(e)
     i_handle(e)
 end
