@@ -38,6 +38,19 @@ function renderer:redraw(e)
     _, width = self.scr:getmaxyx()
     self.scr:mvaddchstr(1, math.floor(width/2 - mode_string:len()/2), mode_string)
     
+    -- Draw status
+    self.scr:mvaddstr(1, 1, self.windows[1].status)
+
+    -- Draw C-LINE mode cursor
+    if e.mode == 5 then
+        self.scr:mvaddstr(1, e.active_window.status:len() + 1, "|")
+    end
+    
+    -- Draw column numbers
+    --for i = 1,50 do
+    --    self.scr:mvaddstr(3, 4 + i, tostring(math.abs(i - e.cursors[1].horizontal)))
+    --end
+    
     -- Draw lines
     for i, v in ipairs(self.windows[1].contents) do
         if math.abs(i - e.cursors[1].line) ~= 0 then
@@ -65,9 +78,9 @@ function renderer:redraw(e)
         for k, c in ipairs(e.cursors) do
             if c.line == i and string.sub(v,c.horizontal,c.horizontal) ~= nil then
                 if e.mode == 1 then
-                    cs:set_ch(c.horizontal-1, string.sub(v,c.horizontal,c.horizontal), curses.A_STANDOUT)--curses.A_UNDERLINE)
+                    cs:set_str(c.horizontal-1, string.sub(v,c.horizontal,c.horizontal), curses.A_STANDOUT)--curses.A_UNDERLINE)
                 else
-                    cs:set_ch(c.horizontal-1, string.sub(v,c.horizontal,c.horizontal), curses.A_REVERSE)
+                    cs:set_str(c.horizontal-1, string.sub(v,c.horizontal,c.horizontal), curses.A_REVERSE)
                 end
             end
         end

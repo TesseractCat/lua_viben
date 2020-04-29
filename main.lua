@@ -12,6 +12,7 @@ local function main()
     -- Initial draw
     renderer:redraw(input)
     
+    -- Input loop
     while true do
         input:loop()
         renderer:redraw(input)
