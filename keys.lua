@@ -206,6 +206,9 @@ function v_handle(e)
     if input_mode_key(e, "v") then return end
     if e.mode == 0 then
         e.mode = 2
+        for i, c in ipairs(e.cursors) do
+            c:zero_range()
+        end
     end
 end
 keys[118] = {handle=v_handle}
@@ -326,9 +329,7 @@ function l_handle(e)
     elseif e.mode == 2 then
         -- Visual mode
         for i, c in ipairs(e.cursors) do
-            if c.horizontal + (c.length-1) < e.active_window.contents[c.line]:len() then
-                c.length = c.length + 1
-            end
+            c:move(1, 0, e)
         end
     end
 end

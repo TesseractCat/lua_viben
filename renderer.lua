@@ -65,8 +65,6 @@ function renderer:redraw(e)
             self.scr:mvaddstr(i + 2, 1, string.char(126) .. tostring(i))
         end
         
-        v = v .. " "
-        
         --if string.len(v) < 1  then
         --    v = " "
         --end
@@ -82,13 +80,13 @@ function renderer:redraw(e)
         end
         
         for k, c in ipairs(e.cursors) do
-            if c.line == i and string.sub(v,c.horizontal,c.horizontal) ~= nil then
+            if c.line == i and string.sub(v,c.horizontal,c.alt_horizontal) ~= nil then
                 if c == e.active_cursor then
-                    cs:set_str(c.horizontal-1, string.sub(v,c.horizontal,c.horizontal), curses.color_pair(1))
-                    cs:set_str(c.horizontal-1, string.sub(v,c.horizontal,c.horizontal), curses.color_pair(2))
+                    cs:set_str(c.horizontal-1, string.sub(v,c.horizontal,c.alt_horizontal), curses.color_pair(1))
+                    cs:set_str(c.horizontal-1, string.sub(v,c.horizontal,c.alt_horizontal), curses.color_pair(2))
                 else
-                    cs:set_str(c.horizontal-1, string.sub(v,c.horizontal,c.horizontal), curses.color_pair(1))
-                    cs:set_str(c.horizontal-1, string.sub(v,c.horizontal,c.horizontal), curses.A_REVERSE)
+                    cs:set_str(c.horizontal-1, string.sub(v,c.horizontal,c.alt_horizontal), curses.color_pair(1))
+                    cs:set_str(c.horizontal-1, string.sub(v,c.horizontal,c.alt_horizontal), curses.A_REVERSE)
                 end
             end
         end

@@ -7,6 +7,7 @@ cursor.prototype.real_horizontal = 1
 
 cursor.prototype.alt_line = 1
 cursor.prototype.alt_horizontal = 1
+cursor.prototype.alt_real_horizontal = 1
 
 cursor.mt = {}
 cursor.mt.__index = cursor.prototype
@@ -39,6 +40,12 @@ function cursor.prototype:move(dx, dy, e)
     if dx ~= 0 then
         self.real_horizontal = self.horizontal
     end
+end
+
+function cursor.prototype:zero_range()
+   self.alt_line = self.line 
+   self.alt_horizontal = self.horizontal
+   self.alt_real_horizontal = self.real_horizontal
 end
 
 return cursor
