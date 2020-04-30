@@ -4,7 +4,9 @@ cursor.prototype = {}
 cursor.prototype.line = 1
 cursor.prototype.horizontal = 1
 cursor.prototype.real_horizontal = 1
-cursor.prototype.length = 1
+
+cursor.prototype.alt_line = 1
+cursor.prototype.alt_horizontal = 1
 
 cursor.mt = {}
 cursor.mt.__index = cursor.prototype

@@ -12,6 +12,12 @@ function renderer:init()
     curses.echo(false)
     curses.nl(false)
     curses.curs_set(0)
+    curses.start_color()
+    
+    -- Color pairs
+    curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_CYAN)
+    curses.init_pair(2, curses.COLOR_WHITE, curses.COLOR_RED)
+    
     self.scr:immedok(true)
     --self.scr:keypad(true)
     self.scr:clear()
@@ -53,10 +59,10 @@ function renderer:redraw(e)
     
     -- Draw lines
     for i, v in ipairs(self.windows[1].contents) do
-        if math.abs(i - e.cursors[1].line) ~= 0 then
+        if math.abs(i - e.active_cursor.line) ~= 0 then
             self.scr:mvaddstr(i + 2, 2, tostring(math.abs(i - e.cursors[1].line)))
         else
-            self.scr:mvaddstr(i + 2, 1, "=" .. tostring(i))
+            self.scr:mvaddstr(i + 2, 1, string.char(126) .. tostring(i))
         end
         
         v = v .. " "
@@ -69,17 +75,19 @@ function renderer:redraw(e)
         
         --cs:set_str(0, v, curses.A_NORMAL)
         
-        if i == e.cursors[1].line then
+        if i == e.active_cursor.line and false then
             cs:set_str(0, v, curses.A_BOLD)
         else
-            cs:set_str(0, v, curses.A_DIM)
+            cs:set_str(0, v, curses.A_NORMAL)
         end
         
         for k, c in ipairs(e.cursors) do
             if c.line == i and string.sub(v,c.horizontal,c.horizontal) ~= nil then
-                if e.mode == 1 then
-                    cs:set_str(c.horizontal-1, string.sub(v,c.horizontal,c.horizontal), curses.A_STANDOUT)--curses.A_UNDERLINE)
+                if c == e.active_cursor then
+                    cs:set_str(c.horizontal-1, string.sub(v,c.horizontal,c.horizontal), curses.color_pair(1))
+                    cs:set_str(c.horizontal-1, string.sub(v,c.horizontal,c.horizontal), curses.color_pair(2))
                 else
+                    cs:set_str(c.horizontal-1, string.sub(v,c.horizontal,c.horizontal), curses.color_pair(1))
                     cs:set_str(c.horizontal-1, string.sub(v,c.horizontal,c.horizontal), curses.A_REVERSE)
                 end
             end
