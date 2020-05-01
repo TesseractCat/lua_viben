@@ -21,6 +21,10 @@ function cursor:new(o)
 end
 
 function cursor.prototype:move(dx, dy, e)
+    if dx ~= 0 then
+        self.real_horizontal = self.horizontal
+    end
+    
     self.horizontal = self.real_horizontal + dx
     self.line = self.line + dy
     if self.line < 1 then
@@ -164,14 +168,14 @@ function cursor.prototype:set_contents(file, new_contents)
     local range_end = self:range_maximum()
     -- First, move everything inside the selection range to a line at range_beginning[1] seperated by \n
     if range_beginning[1] == range_end[1] then
+        -- If it's on one line
         local line = file[range_beginning[1]]
-        -- new_contents could have newline
         line = line:sub(1, range_beginning[2] - 1) .. new_contents .. line:sub(range_end[2] + 1)
         file[range_beginning[1]] = line
     else
         -- range_beginning[1] < range_end[1]
         local line = ""
-        local range_end_inverse = file[range_end[1]]:len() - range_end[2]
+        local range_end_inverse = -(file[range_end[1]]:len() - range_end[2])
         for i=range_beginning[1],range_end[1] do
             if i ~= range_end[1] then
                 line = line .. table.remove(file, range_beginning[1]) .. "\n"
@@ -179,7 +183,11 @@ function cursor.prototype:set_contents(file, new_contents)
                 line = line .. table.remove(file, range_beginning[1])
             end
         end
-        line = line:sub(1, range_beginning[2] - 1) .. new_contents .. line:sub(-range_end_inverse)
+        if range_end_inverse < 0 then
+            line = line:sub(1, range_beginning[2] - 1) .. new_contents .. line:sub(range_end_inverse)
+        else
+            line = line:sub(1, range_beginning[2] - 1) .. new_contents
+        end
         table.insert(file, range_beginning[1], line)
     end
     -- Next, convert line into table

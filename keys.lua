@@ -13,6 +13,13 @@ function input_mode_key(e, val)
             line = line:sub(1, c.horizontal-1) .. val .. line:sub(c.horizontal)
             e.active_window.contents[c.line] = line
             c:move(val:len(),0,e)
+            
+            -- Move all following cursors on the same line
+            for k, fc in ipairs(e.cursors) do
+                if fc.line == c.line and fc ~= c and fc.horizontal > c.horizontal then
+                    fc:move(val:len(),0,e)
+                end
+            end
         end
         return true
     elseif e.mode == 5 then
@@ -38,7 +45,8 @@ nums = "123456789"
 for n in nums:gmatch(".") do
     keys[n:byte(1)] = {handle=function(e)
         if input_mode_key(e, n) then return end
-        if e.mode == 0 then
+        if e.mode == 0 or e.mode == 2 then
+            e.last_mode = e.mode
             e.mode = 3
             e.numerical_mode_data = tonumber(n)
         elseif e.mode == 3 then
@@ -90,7 +98,7 @@ function esc_handle(e)
             c:zero_range()
         end
         e.mode = 0
-    elseif e.mode == 6 then
+    elseif e.mode == 6 or e.mode == 3 then
         -- WFK mode, set mode to last mode
         e.mode = e.last_mode
     end
@@ -123,12 +131,19 @@ function backspace_handle(e)
                 line = line:sub(1, c.horizontal - 2) .. line:sub(c.horizontal)
                 e.active_window.contents[c.line] = line
                 c:move(-1, 0, e)
+                
+                -- Move all following cursors on the same line
+                for k, fc in ipairs(e.cursors) do
+                    if fc.line == c.line and fc ~= c and fc.horizontal > c.horizontal then
+                        fc:move(-1,0,e)
+                    end
+                end
             end
         end
     elseif e.mode == 5 then
         e.active_window.status = e.active_window.status:sub(1, -2)
     end
-    e.active_window.status = e.active_cursor:get_contents(e.active_window.contents)
+    --e.active_window.status = e.active_cursor:get_contents(e.active_window.contents)
 end
 keys[127] = {handle=backspace_handle}
 
@@ -141,8 +156,16 @@ keys[9] = {handle=tab_handle}
 -- Enter
 function enter_handle(e)
     if e.mode == 1 then
-        table.insert(e.active_window.contents, e.active_cursor.line + 1, " ")
-        e.active_cursor:move(0, 1, e)
+        for i, c in ipairs(e.cursors) do
+            table.insert(e.active_window.contents, c.line + 1, " ")
+            -- Move all the following cursors on different lines
+            for k, fc in ipairs(e.cursors) do
+                if fc ~= c and fc.line > c.line then
+                    fc:move(0,1,e)
+                end
+            end
+            c:move(0, 1, e)
+        end
     elseif e.mode == 5 then
         if e.active_window.status == ":q" then
             renderer:exit()
@@ -392,7 +415,9 @@ function x_handle(e)
             c:move(0, 0, e)
             c.real_horizontal = c.horizontal
         end
-        esc_handle(e)
+        if e.mode == 2 then
+            esc_handle(e)
+        end
     end
 end
 keys[120] = {handle=x_handle}
@@ -427,11 +452,11 @@ keys[79] = {handle=shift_o_handle}
 function d_handle(e)
     if input_mode_key(e, "d") then return end
     if e.mode == 4 then
-        table.remove(e.active_window.contents, e.active_cursor.line)
-        e.mode = 0
-        for i, c in ipairs(e.cursors) do
-            c:move(0, 0, e)
+        for i=#e.cursors,1,-1 do
+            table.remove(e.active_window.contents, e.cursors[i].line)
+            e.cursors[i]:move(0, 0, e)
         end
+        e.mode = 0
     elseif e.mode == 0 then
         e.mode = 4
     end
@@ -461,6 +486,30 @@ function f_handle(e)
     end
 end
 keys[102] = {handle=f_handle}
+
+-- Shift+F
+function shift_f_handle_wfk(e, val)
+    for i, c in ipairs(e.cursors) do
+        remaining_line = string.reverse(e.active_window.contents[c.line]:sub(1, c.horizontal))
+        offset, _, _ = rex.find(remaining_line, val)
+        if offset ~= nil then
+            c:move(-offset+1, 0, e)
+        end
+    end
+    esc_handle(e)
+end
+function shift_f_handle(e)
+    if input_mode_key(e, "F") then return end
+    if e.mode == 0 then
+        e.mode = 6
+        e.wfk_mode_data = shift_f_handle_wfk
+    elseif e.mode == 2 then
+        e.mode = 6
+        e.last_mode = 2
+        e.wfk_mode_data = shift_f_handle_wfk
+    end
+end
+keys[70] = {handle=shift_f_handle}
 
 -- R
 function r_handle_wfk(e, val)
