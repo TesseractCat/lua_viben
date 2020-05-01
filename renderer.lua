@@ -15,7 +15,7 @@ function renderer:init()
     curses.start_color()
     
     -- Color pairs
-    curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_CYAN)
+    curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_BLUE)
     curses.init_pair(2, curses.COLOR_WHITE, curses.COLOR_RED)
     
     self.scr:immedok(true)
@@ -80,13 +80,18 @@ function renderer:redraw(e)
         end
         
         for k, c in ipairs(e.cursors) do
-            if c.line == i and string.sub(v,c.horizontal,c.alt_horizontal) ~= nil then
-                if c == e.active_cursor then
-                    cs:set_str(c.horizontal-1, string.sub(v,c.horizontal,c.alt_horizontal), curses.color_pair(1))
-                    cs:set_str(c.horizontal-1, string.sub(v,c.horizontal,c.alt_horizontal), curses.color_pair(2))
-                else
-                    cs:set_str(c.horizontal-1, string.sub(v,c.horizontal,c.alt_horizontal), curses.color_pair(1))
-                    cs:set_str(c.horizontal-1, string.sub(v,c.horizontal,c.alt_horizontal), curses.A_REVERSE)
+            if c:get_line_range(i) ~= nil then
+                -- Draw selection
+                local range = c:get_line_range(i)
+                cs:set_str(range[1]-1, string.sub(v,range[1],range[2]), curses.color_pair(1))
+                
+                -- Draw cursor head
+                if c.line == i then
+                    if c == e.active_cursor then
+                        cs:set_str(c.horizontal-1, string.sub(v,c.horizontal,c.horizontal), curses.color_pair(2))
+                    else
+                        cs:set_str(c.horizontal-1, string.sub(v,c.horizontal,c.horizontal), curses.A_REVERSE)
+                    end
                 end
             end
         end

@@ -52,8 +52,7 @@ function zero_handle(e)
     if input_mode_key(e, '0') then return end
     if e.mode == 0 then
         for i, c in ipairs(e.cursors) do
-            c.horizontal = 1
-            c.real_horizontal = 1
+            c:move_abs(1, nil, e)
         end
     elseif e.mode == 3 then
         e.numerical_mode_data = tonumber(tostring(e.numerical_mode_data) .. '0')
@@ -66,8 +65,7 @@ function dollar_handle(e)
     if input_mode_key(e, '$') then return end
     if e.mode == 0 then
         for i, c in ipairs(e.cursors) do
-            c.horizontal = e.active_window.contents[c.line]:len()
-            c.real_horizontal = e.active_window.contents[c.line]:len()
+            c:move_abs(e.active_window.contents[c.line]:len(), nil, e)
         end
     end
 end
@@ -79,19 +77,26 @@ function esc_handle(e)
         for i, c in ipairs(e.cursors) do
             c:move(-1, 0, e)
         end
+        e.mode = 0
     elseif e.mode == 0 then
         -- Remove extra cursors
         e.cursors = {e.active_cursor}
+        e.mode = 0
     elseif e.mode == 2 then
         -- Remove selection lengths
         for i, c in ipairs(e.cursors) do
-            c.length = 1
+            c.range = false
+            c:zero_range()
         end
+        e.mode = 0
+    elseif e.mode == 6 then
+        -- WFK mode, set mode to last mode
+        e.mode = e.last_mode
     end
-    e.mode = 0
+    e.last_mode = 0
     e.numerical_mode_data = 1
     
-    e.active_window.status = 'PCRE2 (' .. rex.version() .. ')' .. ' VIB (0.0.1)'
+    --e.active_window.status = 'PCRE2 (' .. rex.version() .. ')' .. ' VIB (0.0.1)'
 end
 keys[27] = {handle=esc_handle}
 
@@ -122,6 +127,7 @@ function backspace_handle(e)
     elseif e.mode == 5 then
         e.active_window.status = e.active_window.status:sub(1, -2)
     end
+    e.active_window.status = e.active_cursor:get_contents(e.active_window.contents)
 end
 keys[127] = {handle=backspace_handle}
 
@@ -208,6 +214,7 @@ function v_handle(e)
         e.mode = 2
         for i, c in ipairs(e.cursors) do
             c:zero_range()
+            c.range = true
         end
     end
 end
@@ -248,8 +255,8 @@ function shift_h_handle(e)
     if input_mode_key(e, "H") then return end
     if e.mode == 0 then
         for i, c in ipairs(e.cursors) do
-            c.horizontal, _, _ = rex.find(e.active_window.contents[c.line], "[^\\s]")
-            c.real_horizontal = c.horizontal
+            char_horizontal, _, _ = rex.find(e.active_window.contents[c.line], "[^\\s]")
+            c:move_abs(char_horizontal, nil, e)
         end
     end
 end
@@ -307,9 +314,7 @@ function h_handle(e)
     elseif e.mode == 2 then
         -- Visual mode
         for i, c in ipairs(e.cursors) do
-            if c.length > 1 then
-                c.length = c.length - 1
-            end
+            c:move(-1, 0, e)
         end
     end
 end
@@ -345,6 +350,11 @@ function j_handle(e)
         if e.mode == 3 then
             esc_handle(e)
         end
+    elseif e.mode == 2 then
+        -- Visual mode
+        for i, c in ipairs(e.cursors) do
+            c:move(0, 1, e)
+        end
     end
 end
 keys[106] = {handle=j_handle}
@@ -358,6 +368,11 @@ function k_handle(e)
         end
         if e.mode == 3 then
             esc_handle(e)
+        end
+    elseif e.mode == 2 then
+        -- Visual mode
+        for i, c in ipairs(e.cursors) do
+            c:move(0, -1, e)
         end
     end
 end
@@ -375,6 +390,18 @@ function x_handle(e)
             -- Make sure cursor isn't out of bounds
             c:move(0, 0, e)
         end
+    elseif e.mode == 2 then
+        for i, c in ipairs(e.cursors) do
+            line = e.active_window.contents[c.line]
+            line = line:sub(1, c:range_minimum()[2] - 1) .. line:sub(c:range_maximum()[2] + 1)
+            e.active_window.contents[c.line] = line
+            
+            -- Make sure cursor isn't out of bounds
+            c:sort_sides()
+            c:zero_range()
+            c:move(0, 0, e)
+        end
+        esc_handle(e)
     end
 end
 keys[120] = {handle=x_handle}
@@ -386,6 +413,10 @@ function o_handle(e)
         table.insert(e.active_window.contents, e.active_cursor.line + 1, " ")
         e.mode = 1
         e.active_cursor:move(0, 1, e)
+    elseif e.mode == 2 then
+        for i, c in ipairs(e.cursors) do
+            c:swap_sides()
+        end
     end
 end
 keys[111] = {handle=o_handle}
@@ -416,11 +447,14 @@ function d_handle(e)
 end
 keys[100] = {handle=d_handle}
 
+-- F
 function f_handle_wfk(e, val)
-    remaining_line = e.active_window.contents[e.active_cursor.line]:sub(e.active_cursor.horizontal+1)
-    offset, _, _ = rex.find(remaining_line, val)
-    if offset ~= nil then
-        e.active_cursor:move(offset, 0, e)
+    for i, c in ipairs(e.cursors) do
+        remaining_line = e.active_window.contents[c.line]:sub(c.horizontal+1)
+        offset, _, _ = rex.find(remaining_line, val)
+        if offset ~= nil then
+            c:move(offset, 0, e)
+        end
     end
     esc_handle(e)
 end
@@ -429,8 +463,33 @@ function f_handle(e)
     if e.mode == 0 then
         e.mode = 6
         e.wfk_mode_data = f_handle_wfk
+    elseif e.mode == 2 then
+        e.mode = 6
+        e.last_mode = 2
+        e.wfk_mode_data = f_handle_wfk
     end
 end
 keys[102] = {handle=f_handle}
+
+-- R
+function r_handle_wfk(e, val)
+    for i, c in ipairs(e.cursors) do
+        if e.last_mode == 0 then
+            line = e.active_window.contents[c.line]
+            line = line:sub(1, c.horizontal - 1) .. val .. line:sub(c.horizontal+1)
+            e.active_window.contents[c.line] = line
+        end
+    end
+    esc_handle(e)
+end
+function r_handle(e)
+    if input_mode_key(e, "r") then return end
+    if e.mode == 0 or e.mode == 2 then
+        e.last_mode = e.mode
+        e.mode = 6
+        e.wfk_mode_data = r_handle_wfk
+    end
+end
+keys[114] = {handle=r_handle}
 
 return keys

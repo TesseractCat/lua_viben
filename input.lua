@@ -9,6 +9,7 @@ local input = {}
 -- 6 = WFK (for commands like f, r, m, etc., which need one key input)
 input.mode_names = {"COMMAND", "INSERT", "VISUAL", "NUMERICAL", "VERB", "C-LINE", "WFK"}
 input.mode = 0
+input.last_mode = 0
 input.numerical_mode_data = 1
 input.verb_mode_data = {
     verb = nil,
