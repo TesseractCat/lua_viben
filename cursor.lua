@@ -159,5 +159,40 @@ function cursor.prototype:get_contents(file)
     end
 end
 
+function cursor.prototype:set_contents(file, new_contents)
+    local range_beginning = self:range_minimum()
+    local range_end = self:range_maximum()
+    -- First, move everything inside the selection range to a line at range_beginning[1] seperated by \n
+    if range_beginning[1] == range_end[1] then
+        local line = file[range_beginning[1]]
+        -- new_contents could have newline
+        line = line:sub(1, range_beginning[2] - 1) .. new_contents .. line:sub(range_end[2] + 1)
+        file[range_beginning[1]] = line
+    else
+        -- range_beginning[1] < range_end[1]
+        local line = ""
+        local range_end_inverse = file[range_end[1]]:len() - range_end[2]
+        for i=range_beginning[1],range_end[1] do
+            if i ~= range_end[1] then
+                line = line .. table.remove(file, range_beginning[1]) .. "\n"
+            else
+                line = line .. table.remove(file, range_beginning[1])
+            end
+        end
+        line = line:sub(1, range_beginning[2] - 1) .. new_contents .. line:sub(-range_end_inverse)
+        table.insert(file, range_beginning[1], line)
+    end
+    -- Next, convert line into table
+    local lines = {}
+    for s in file[range_beginning[1]]:gmatch("[^\n]+") do
+        table.insert(lines, s)
+    end
+    -- Then, add the table back into the file
+    table.remove(file, range_beginning[1])
+    for i=#lines,1,-1 do
+        table.insert(file, range_beginning[1], lines[i])
+    end
+end
+
 
 return cursor

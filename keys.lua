@@ -50,7 +50,7 @@ end
 -- 0
 function zero_handle(e)
     if input_mode_key(e, '0') then return end
-    if e.mode == 0 then
+    if e.mode == 0 or e.mode == 2 then
         for i, c in ipairs(e.cursors) do
             c:move_abs(1, nil, e)
         end
@@ -63,9 +63,10 @@ keys[48] = {handle=zero_handle}
 -- $
 function dollar_handle(e)
     if input_mode_key(e, '$') then return end
-    if e.mode == 0 then
+    if e.mode == 0 or e.mode == 2 then
         for i, c in ipairs(e.cursors) do
             c:move_abs(e.active_window.contents[c.line]:len(), nil, e)
+            c.real_horizontal = 10000
         end
     end
 end
@@ -381,25 +382,15 @@ keys[107] = {handle=k_handle}
 -- X
 function x_handle(e)
     if input_mode_key(e, "x") then return end
-    if e.mode == 0 then
+    if e.mode == 0 or e.mode == 2 then
         for i, c in ipairs(e.cursors) do
-            line = e.active_window.contents[c.line]
-            line = line:sub(1, c.horizontal - 1) .. line:sub(c.horizontal + 1)
-            e.active_window.contents[c.line] = line
-            
-            -- Make sure cursor isn't out of bounds
-            c:move(0, 0, e)
-        end
-    elseif e.mode == 2 then
-        for i, c in ipairs(e.cursors) do
-            line = e.active_window.contents[c.line]
-            line = line:sub(1, c:range_minimum()[2] - 1) .. line:sub(c:range_maximum()[2] + 1)
-            e.active_window.contents[c.line] = line
+            c:set_contents(e.active_window.contents, "")
             
             -- Make sure cursor isn't out of bounds
             c:sort_sides()
             c:zero_range()
             c:move(0, 0, e)
+            c.real_horizontal = c.horizontal
         end
         esc_handle(e)
     end
@@ -474,12 +465,22 @@ keys[102] = {handle=f_handle}
 -- R
 function r_handle_wfk(e, val)
     for i, c in ipairs(e.cursors) do
-        if e.last_mode == 0 then
-            line = e.active_window.contents[c.line]
-            line = line:sub(1, c.horizontal - 1) .. val .. line:sub(c.horizontal+1)
-            e.active_window.contents[c.line] = line
-        end
+        --if e.last_mode == 0 then
+        --    line = e.active_window.contents[c.line]
+        --    line = line:sub(1, c.horizontal - 1) .. val .. line:sub(c.horizontal+1)
+        --    e.active_window.contents[c.line] = line
+        --end
+        local replacement_contents = c:get_contents(e.active_window.contents)
+        replacement_contents = replacement_contents:gsub("[^\n]", val)
+        c:set_contents(e.active_window.contents, replacement_contents)
+        
+        -- Make sure cursor isn't out of bounds
+        c:sort_sides()
+        c:zero_range()
+        c:move(0, 0, e)
+        c.real_horizontal = c.horizontal
     end
+    esc_handle(e)
     esc_handle(e)
 end
 function r_handle(e)
