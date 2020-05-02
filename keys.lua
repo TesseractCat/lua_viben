@@ -490,10 +490,10 @@ keys[102] = {handle=f_handle}
 -- Shift+F
 function shift_f_handle_wfk(e, val)
     for i, c in ipairs(e.cursors) do
-        remaining_line = string.reverse(e.active_window.contents[c.line]:sub(1, c.horizontal))
+        remaining_line = string.reverse(e.active_window.contents[c.line]:sub(1, c.horizontal-1))
         offset, _, _ = rex.find(remaining_line, val)
         if offset ~= nil then
-            c:move(-offset+1, 0, e)
+            c:move(-offset, 0, e)
         end
     end
     esc_handle(e)
