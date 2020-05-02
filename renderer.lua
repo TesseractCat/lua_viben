@@ -88,7 +88,11 @@ function renderer:redraw(e)
                 -- Draw cursor head
                 if c.line == i then
                     if c == e.active_cursor then
-                        cs:set_str(c.horizontal-1, string.sub(v,c.horizontal,c.horizontal), curses.color_pair(2))
+                        if e.mode ~= 1 or true then
+                            cs:set_str(c.horizontal-1, string.sub(v,c.horizontal,c.horizontal), curses.color_pair(2))
+                        else
+                            cs:set_str(c.horizontal-1, string.sub(v,c.horizontal,c.horizontal), curses.A_UNDERLINE)
+                        end
                     else
                         cs:set_str(c.horizontal-1, string.sub(v,c.horizontal,c.horizontal), curses.A_REVERSE)
                     end

@@ -1,6 +1,7 @@
 local renderer = require "renderer"
 local rex = require "rex_pcre2" -- lrexlib
 local cursor = require "cursor"
+local commands = require "commands"
 
 local keys = {}
 
@@ -167,10 +168,7 @@ function enter_handle(e)
             c:move(0, 1, e)
         end
     elseif e.mode == 5 then
-        if e.active_window.status == ":q" then
-            renderer:exit()
-            os.exit()
-        end
+        commands:process(e)
     end
 end
 keys[13] = {handle=enter_handle}
@@ -459,6 +457,8 @@ function d_handle(e)
         e.mode = 0
     elseif e.mode == 0 then
         e.mode = 4
+    elseif e.mode == 2 then
+        x_handle(e)
     end
 end
 keys[100] = {handle=d_handle}
@@ -541,5 +541,32 @@ function r_handle(e)
     end
 end
 keys[114] = {handle=r_handle}
+
+-- Shift+A
+function shift_a_handle(e)
+    if input_mode_key(e, "A") then return end
+    if e.mode == 0 then
+        dollar_handle(e)
+        a_handle(e)
+    end
+end
+keys[65] = {handle=shift_a_handle}
+
+-- Shift+I
+function shift_i_handle(e)
+    if input_mode_key(e, "I") then return end
+    if e.mode == 0 then
+        zero_handle(e)
+        i_handle(e)
+    end
+end
+keys[73] = {handle=shift_i_handle}
+
+-- E
+--function e_handle(e)
+--    if input_mode_key(e, "I") then return end
+--    if e.mode == 0 then
+--    end
+--end
 
 return keys
