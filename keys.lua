@@ -247,7 +247,7 @@ keys[118] = {handle=v_handle}
 -- N
 function n_handle(e)
     if input_mode_key(e, "n") then return end
-    if e.mode == 0 and #e.cursors > 1 then
+    if (e.mode == 0 or e.mode == 2) and #e.cursors > 1 then
         -- Sort
         table.sort(e.cursors, e.compare_cursors)
         
