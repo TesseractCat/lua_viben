@@ -8,6 +8,14 @@ local function main()
     -- Init
     renderer:init()
     input:init()
+    
+    -- Read file
+    local f = io.open(arg[1], "r")
+    renderer.windows[1].contents = {}
+    for line in f:lines() do
+        table.insert(renderer.windows[1].contents, line)
+    end
+    f:close()
 
     -- Initial draw
     renderer:redraw(input)

@@ -13,7 +13,7 @@ window.prototype.path = "./default.txt"
 window.prototype.contents = {
     "This is a scratch file",
     "Use this file to enter any text you want",
-    "a",
+    "",
     "Here is an example function:",
     "function rabbits(int babbit, int crabbit) {",
     "    print('rabbit man')",

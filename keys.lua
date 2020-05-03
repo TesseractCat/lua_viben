@@ -99,9 +99,14 @@ function esc_handle(e)
             c:zero_range()
         end
         e.mode = 0
-    elseif e.mode == 6 or e.mode == 3 or e.mode == 5 then
+    elseif e.mode == 6 or e.mode == 3 then
         -- Set mode to last mode
         e.mode = e.last_mode
+    elseif e.mode == 5 then
+        -- Set mode to last mode
+        e.mode = e.last_mode
+        -- Reset status message
+        e.active_window.status = ""
     end
     e.last_mode = 0
     e.numerical_mode_data = 1
@@ -176,7 +181,7 @@ keys[13] = {handle=enter_handle}
 -- Forward Slash
 function forward_slash_handle(e)
     if input_mode_key(e, '/') then return end
-    if e.mode == 0 then
+    if e.mode == 0 or e.mode == 2 then
         e.last_mode = e.mode
         e.mode = 5
         e.active_window.status = "/"

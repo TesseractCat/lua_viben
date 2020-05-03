@@ -30,12 +30,16 @@ function commands:search(e, pattern)
     
     -- Find all matches start and end positions
     while pattern:tfind(subject, offset) ~= nil do
-        local start_pos, end_pos = pattern:tfind(subject, offset)
+        local start_pos, end_pos, capture_groups = pattern:exec(subject, offset)
         --local length = (end_pos - start_pos) + 1
         offset = end_pos + 1
         
+        if #capture_groups > 0 then
+            -- Capture group, use as selection range
+            start_pos, end_pos = capture_groups[1], capture_groups[2]
+        end
+        
         table.insert(cursor_ranges, {start_pos, end_pos})
-        --e.active_window.status = e.active_window.status .. table.concat({start_pos, end_pos}, ", ") .. " | "
     end
     
     e.active_window.status = tostring(#cursor_ranges) .. " matches found."

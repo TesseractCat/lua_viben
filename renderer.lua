@@ -45,11 +45,11 @@ function renderer:redraw(e)
     self.scr:mvaddchstr(1, math.floor(width/2 - mode_string:len()/2), mode_string)
     
     -- Draw status
-    self.scr:mvaddstr(1, 1, self.windows[1].status)
+    self.scr:mvaddstr(1, 2, self.windows[1].status)
 
     -- Draw C-LINE mode cursor
     if e.mode == 5 then
-        self.scr:mvaddstr(1, e.active_window.status:len() + 1, "|")
+        self.scr:mvaddstr(1, e.active_window.status:len() + 2, "|")
     end
     
     -- Draw column numbers
@@ -65,9 +65,9 @@ function renderer:redraw(e)
             self.scr:mvaddstr(i + 2, 1, string.char(126) .. tostring(i))
         end
         
-        --if string.len(v) < 1  then
-        --    v = " "
-        --end
+        if string.len(v) < 1  then
+            v = " "
+        end
 
         cs = curses.chstr(string.len(v))
         
@@ -79,7 +79,8 @@ function renderer:redraw(e)
             cs:set_str(0, v, curses.A_NORMAL)
         end
         
-        for k, c in ipairs(e.cursors) do
+        for k=#e.cursors,1,-1 do
+            local c = e.cursors[k]
             if c:get_line_range(i) ~= nil then
                 -- Draw selection
                 local range = c:get_line_range(i)
