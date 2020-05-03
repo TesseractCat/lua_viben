@@ -38,11 +38,15 @@ function window.prototype:split(dir)
 end
 
 function window.prototype:get_length()
-    length = 0
+    local length = 0
     for i, c in ipairs(self.contents) do
         length = length + c:len()
     end
     return length
+end
+
+function window.prototype:get_contents_as_string()
+    return table.concat(self.contents, "\n")
 end
 
 return window

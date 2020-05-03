@@ -92,15 +92,15 @@ function esc_handle(e)
         -- Remove extra cursors
         e.cursors = {e.active_cursor}
         e.mode = 0
-    elseif e.mode == 2 then
+    elseif e.mode == 2 or e.mode == 4 then
         -- Remove selection lengths
         for i, c in ipairs(e.cursors) do
             c.range = false
             c:zero_range()
         end
         e.mode = 0
-    elseif e.mode == 6 or e.mode == 3 then
-        -- WFK mode, set mode to last mode
+    elseif e.mode == 6 or e.mode == 3 or e.mode == 5 then
+        -- Set mode to last mode
         e.mode = e.last_mode
     end
     e.last_mode = 0
@@ -118,7 +118,7 @@ function backspace_handle(e)
         end
     elseif e.mode == 1 then
         for i, c in ipairs(e.cursors) do
-            if c.horizontal == 1 then
+            if c.horizontal == 1 and #e.cursors == 1 then
                 if c.line ~= 1 then
                     -- Join lines
                     prev_line_length = e.active_window.contents[c.line - 1]:len()
@@ -127,7 +127,7 @@ function backspace_handle(e)
                     c:move(0, -1, e)
                     c:move(prev_line_length, 0, e)
                 end
-            else
+            elseif c.horizontal ~= 1 then
                 line = e.active_window.contents[c.line]
                 line = line:sub(1, c.horizontal - 2) .. line:sub(c.horizontal)
                 e.active_window.contents[c.line] = line
@@ -169,6 +169,7 @@ function enter_handle(e)
         end
     elseif e.mode == 5 then
         commands:process(e)
+        esc_handle(e)
     end
 end
 keys[13] = {handle=enter_handle}
@@ -177,6 +178,7 @@ keys[13] = {handle=enter_handle}
 function forward_slash_handle(e)
     if input_mode_key(e, '/') then return end
     if e.mode == 0 then
+        e.last_mode = e.mode
         e.mode = 5
         e.active_window.status = "/"
     end
@@ -187,6 +189,7 @@ keys[47] = {handle=forward_slash_handle}
 function colon_handle(e)
     if input_mode_key(e, ':') then return end
     if e.mode == 0 then
+        e.last_mode = e.mode
         e.mode = 5
         e.active_window.status = ":"
     end
@@ -403,7 +406,7 @@ keys[107] = {handle=k_handle}
 -- X
 function x_handle(e)
     if input_mode_key(e, "x") then return end
-    if e.mode == 0 or e.mode == 2 then
+    if e.mode == 0 or e.mode == 2 or e.mode == 4 then
         for i, c in ipairs(e.cursors) do
             c:set_contents(e.active_window.contents, "")
             
@@ -447,6 +450,14 @@ end
 keys[79] = {handle=shift_o_handle}
 
 -- D
+function d_handle_immed(e)
+    x_handle(e)
+    for i, c in ipairs(e.cursors) do
+        c.range = false
+        c:zero_range()
+    end
+    e.mode = 0
+end
 function d_handle(e)
     if input_mode_key(e, "d") then return end
     if e.mode == 4 then
@@ -457,6 +468,11 @@ function d_handle(e)
         e.mode = 0
     elseif e.mode == 0 then
         e.mode = 4
+        e.verb_mode_data.verb = d_handle_immed
+        for i, c in ipairs(e.cursors) do
+            c:zero_range()
+            c.range = true
+        end
     elseif e.mode == 2 then
         x_handle(e)
     end
@@ -472,16 +488,18 @@ function f_handle_wfk(e, val)
             c:move(offset, 0, e)
         end
     end
-    esc_handle(e)
+    if e.last_mode == 4 then
+        e.mode = 2
+        e.verb_mode_data.verb(e)
+    else
+        esc_handle(e)
+    end
 end
 function f_handle(e)
     if input_mode_key(e, "f") then return end
-    if e.mode == 0 then
+    if e.mode == 0 or e.mode == 2 or e.mode == 4 then
+        e.last_mode = e.mode
         e.mode = 6
-        e.wfk_mode_data = f_handle_wfk
-    elseif e.mode == 2 then
-        e.mode = 6
-        e.last_mode = 2
         e.wfk_mode_data = f_handle_wfk
     end
 end
@@ -496,16 +514,18 @@ function shift_f_handle_wfk(e, val)
             c:move(-offset, 0, e)
         end
     end
-    esc_handle(e)
+    if e.last_mode == 4 then
+        e.mode = 2
+        e.verb_mode_data.verb(e)
+    else
+        esc_handle(e)
+    end
 end
 function shift_f_handle(e)
     if input_mode_key(e, "F") then return end
-    if e.mode == 0 then
+    if e.mode == 0 or e.mode == 2 or e.mode == 4 then
+        e.last_mode = e.mode
         e.mode = 6
-        e.wfk_mode_data = shift_f_handle_wfk
-    elseif e.mode == 2 then
-        e.mode = 6
-        e.last_mode = 2
         e.wfk_mode_data = shift_f_handle_wfk
     end
 end
