@@ -26,32 +26,35 @@ function commands:search(e, pattern)
     local cursor_ranges = {}
     local offset = 1
     
-    e.active_window.status = ""
+    --e.active_window.status = ""
     
     -- Find all matches start and end positions
     while pattern:tfind(subject, offset) ~= nil do
         local start_pos, end_pos = pattern:tfind(subject, offset)
         --local length = (end_pos - start_pos) + 1
-        offset = end_pos
+        offset = end_pos + 1
         
         table.insert(cursor_ranges, {start_pos, end_pos})
-        e.active_window.status = e.active_window.status .. table.concat({start_pos, end_pos}, ", ") .. " | "
+        --e.active_window.status = e.active_window.status .. table.concat({start_pos, end_pos}, ", ") .. " | "
     end
     
-    --e.active_window.status = tostring(#cursor_ranges) .. " matches found."
+    e.active_window.status = tostring(#cursor_ranges) .. " matches found."
     
     -- Convert ranges to new cursors
     local cursors = {}
     for i, c in ipairs(cursor_ranges) do
         -- Create new cursor
         local nc = cursor:new()
+        nc.range = true
         
         -- Convert start and end positions to line/hoz positions
-        nc.line = rex.count(subject:sub(1, c[1]), "\n")+1 -- Count all newlines from beginning to start_pos
-        nc.alt_line = rex.count(subject:sub(1, c[2]), "\n")+1
+        nc.alt_line = rex.count(subject:sub(1, c[1]), "\n")+1 -- Count all newlines from beginning to start_pos
+        nc.line = rex.count(subject:sub(1, c[2]), "\n")+1
         
-        nc.horizontal = c[1] - subject:sub(1, c[1]):find("\n[^\n]*$") -- Find last index of newline before start_pos
-        nc.alt_horizontal = c[2] - subject:sub(1, c[2]):find("\n[^\n]*$")
+        nc.alt_horizontal = c[1] - (subject:sub(1, c[1]):find("\n[^\n]*$") or 0) -- Find last index of newline before start_pos
+        nc.alt_real_horizontal = nc.alt_horizontal
+        nc.horizontal = c[2] - (subject:sub(1, c[2]):find("\n[^\n]*$") or 0)
+        nc.real_horizontal = nc.horizontal
         
         -- Add to table
         table.insert(cursors, nc)

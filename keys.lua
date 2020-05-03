@@ -169,7 +169,6 @@ function enter_handle(e)
         end
     elseif e.mode == 5 then
         commands:process(e)
-        esc_handle(e)
     end
 end
 keys[13] = {handle=enter_handle}
