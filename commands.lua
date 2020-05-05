@@ -5,6 +5,8 @@ local cursor = require "cursor"
 local commands = {}
 local command_defs = {}
 
+local previous_cursors = {}
+
 function commands:process(e)
     -- Should probably have some sort of cline_mode_data, rather than using status
     --if e.cline_mode_data:sub(1,1) == ":" then
@@ -49,14 +51,21 @@ function commands:keypress(e)
     end
 end
 
+function commands:start_entry(e, initial_text)
+    e.mode = 6
+    e.cline_mode_data = initial_text
+    previous_cursors = e.cursors
+end
+
 function commands:escape(e)
-    for i, c in ipairs(e.cursors) do
-        c.visible = true
-        if e.mode ~= 3 then
-            c.range = false
-            c:zero_range()
-        end
-    end
+    --for i, c in ipairs(e.cursors) do
+    --    c.visible = true
+    --    if e.mode ~= 3 then
+    --        c.range = false
+    --        c:zero_range()
+    --    end
+    --end
+    e.cursors = previous_cursors
 end
 
 command_defs[":x/"] = function(e,final)

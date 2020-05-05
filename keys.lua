@@ -195,8 +195,7 @@ mode_keymaps[6][{13}] = {handle=enter_handle}
 -- Forward Slash
 function forward_slash_handle(e)
     e.last_mode = e.mode
-    e.mode = 6
-    e.cline_mode_data = ":x/"
+    commands:start_entry(e, ":x/")
 end
 mode_keymaps[1][{47}] = {handle=forward_slash_handle}
 mode_keymaps[3][{47}] = {handle=forward_slash_handle}
@@ -204,10 +203,10 @@ mode_keymaps[3][{47}] = {handle=forward_slash_handle}
 -- Colon
 function colon_handle(e)
     e.last_mode = e.mode
-    e.mode = 6
-    e.cline_mode_data = ":"
+    commands:start_entry(e, ":")
 end
 mode_keymaps[1][{58}] = {handle=colon_handle}
+mode_keymaps[3][{58}] = {handle=colon_handle}
 
 -- Ctrl + J
 function ctrl_j_handle(e)
@@ -566,8 +565,7 @@ function g_handle(e)
     -- Given, check each for regex
     if #e.cursors > 1 then
         e.last_mode = e.mode
-        e.mode = 6
-        e.cline_mode_data = ":g/"
+        commands:start_entry(e, ":g/")
     end
 end
 mode_keymaps[3][{103}] = {handle=g_handle}
