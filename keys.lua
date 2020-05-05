@@ -3,125 +3,142 @@ local rex = require "rex_pcre2" -- lrexlib
 local cursor = require "cursor"
 local commands = require "commands"
 
-local keys = {}
+-- Per mode
+-- Example keymap:
+-- {48}: {handle=zero_handle}
+-- {105,119}: {handle=word_handle, params={inner=true}}
+local mode_keymaps = {{},{},{},{},{},{},{}}
 
-function input_mode_key(e, val)
-    if e.mode == 1 then
-        -- Input mode
-        --e.active_window.contents[e.active_cursor.line] = e.active_window.contents[e.active_cursor.line] .. val
-        for i, c in ipairs(e.cursors) do
-            line = e.active_window.contents[c.line]
-            line = line:sub(1, c.horizontal-1) .. val .. line:sub(c.horizontal)
-            e.active_window.contents[c.line] = line
-            c:move(val:len(),0,e)
-            
-            -- Move all following cursors on the same line
-            for k, fc in ipairs(e.cursors) do
-                if fc.line == c.line and fc ~= c and fc.horizontal > c.horizontal then
-                    fc:move(val:len(),0,e)
-                end
+-- e = input statE
+function insert_mode_default(e, val)
+    --e.active_window.contents[e.active_cursor.line] = e.active_window.contents[e.active_cursor.line] .. val
+    for i, c in ipairs(e.cursors) do
+        line = e.active_window.contents[c.line]
+        line = line:sub(1, c.horizontal-1) .. val .. line:sub(c.horizontal)
+        e.active_window.contents[c.line] = line
+        c:move(val:len(),0,e)
+        
+        -- Move all following cursors on the same line
+        for k, fc in ipairs(e.cursors) do
+            if fc.line == c.line and fc ~= c and fc.horizontal > c.horizontal then
+                fc:move(val:len(),0,e)
             end
         end
-        return true
-    elseif e.mode == 5 then
-        -- C-LINE mode
-        e.active_window.status = e.active_window.status .. val
-        return true
-    elseif e.mode == 6 then
-        -- WFK mode
-        e.wfk_mode_data(e, val)
-        return true
     end
-    return false
 end
 
-chars = " abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()-=+_[]{}|\\:;<>,.?/`~\'\""
+function cline_mode_default(e, val)
+    e.cline_mode_data = e.cline_mode_data .. val
+    commands:keypress(e)
+end
+
+function wfk_mode_default(e, val)
+    if e.wfk_mode_data ~= nil then
+        e.wfk_mode_data(e, val)
+    end
+end
+
+chars = " 0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()-=+_[]{}|\\:;<>,.?/`~\'\""
 for c in chars:gmatch(".") do
-    keys[c:byte(1)] = {handle=function(e)
-        if input_mode_key(e, c) then return end
+    --keys[c:byte(1)] = {handle=function(e)
+    --    if input_mode_key(e, c) then return end
+    --end}
+    mode_keymaps[2][{c:byte(1)}] = {handle=function(e)
+        insert_mode_default(e, c)
+    end}
+    mode_keymaps[6][{c:byte(1)}] = {handle=function(e)
+        cline_mode_default(e, c)
+    end}
+    mode_keymaps[7][{c:byte(1)}] = {handle=function(e)
+        wfk_mode_default(e, c)
     end}
 end
 
 nums = "123456789"
 for n in nums:gmatch(".") do
-    keys[n:byte(1)] = {handle=function(e)
-        if input_mode_key(e, n) then return end
-        if e.mode == 0 or e.mode == 2 then
+    num_handle = function(e)
+        if e.mode == 1 or e.mode == 3 then
             e.last_mode = e.mode
-            e.mode = 3
+            e.mode = 4
             e.numerical_mode_data = tonumber(n)
-        elseif e.mode == 3 then
+        elseif e.mode == 4 then
             e.numerical_mode_data = tonumber(tostring(e.numerical_mode_data) .. n)
         end
-    end}
+    end
+    
+    mode_keymaps[4][{n:byte(1)}] = {handle=num_handle}
+    mode_keymaps[1][{n:byte(1)}] = {handle=num_handle}
+    mode_keymaps[3][{n:byte(1)}] = {handle=num_handle}
 end
 
 -- 0
 function zero_handle(e)
-    if input_mode_key(e, '0') then return end
-    if e.mode == 0 or e.mode == 2 then
-        for i, c in ipairs(e.cursors) do
-            c:move_abs(1, nil, e)
-        end
-    elseif e.mode == 3 then
-        e.numerical_mode_data = tonumber(tostring(e.numerical_mode_data) .. '0')
+    for i, c in ipairs(e.cursors) do
+        c:move_abs(1, nil, e)
     end
 end
-keys[48] = {handle=zero_handle}
+mode_keymaps[1][{48}] = {handle=zero_handle}
+mode_keymaps[3][{48}] = {handle=zero_handle}
 
 -- $
 function dollar_handle(e)
-    if input_mode_key(e, '$') then return end
-    if e.mode == 0 or e.mode == 2 then
-        for i, c in ipairs(e.cursors) do
-            c:move_abs(e.active_window.contents[c.line]:len(), nil, e)
-            c.real_horizontal = 10000
-        end
+    for i, c in ipairs(e.cursors) do
+        c:move_abs(e.active_window.contents[c.line]:len(), nil, e)
+        c.real_horizontal = 10000
     end
 end
-keys[36] = {handle=dollar_handle}
+mode_keymaps[1][{36}] = {handle=dollar_handle}
+mode_keymaps[3][{36}] = {handle=dollar_handle}
 
 -- Escape
 function esc_handle(e)
-    if e.mode == 1 then
+    if e.mode == 2 then
         for i, c in ipairs(e.cursors) do
             c:move(-1, 0, e)
         end
-        e.mode = 0
-    elseif e.mode == 0 then
+        e.mode = 1
+    elseif e.mode == 1 then
         -- Remove extra cursors
         e.cursors = {e.active_cursor}
-        e.mode = 0
-    elseif e.mode == 2 or e.mode == 4 then
+        e.mode = 1
+    elseif e.mode == 3 or e.mode == 5 then
         -- Remove selection lengths
         for i, c in ipairs(e.cursors) do
             c.range = false
             c:zero_range()
         end
-        e.mode = 0
-    elseif e.mode == 6 or e.mode == 3 then
+        e.mode = 1
+    elseif e.mode == 7 or e.mode == 4 then
         -- Set mode to last mode
         e.mode = e.last_mode
-    elseif e.mode == 5 then
+    elseif e.mode == 6 then
         -- Set mode to last mode
         e.mode = e.last_mode
+        -- Run commands escape callback
+        commands:escape(e)
         -- Reset status message
-        e.active_window.status = ""
+        e.cline_mode_data = ""
     end
-    e.last_mode = 0
+    e.last_mode = 1
     e.numerical_mode_data = 1
     
-    --e.active_window.status = 'PCRE2 (' .. rex.version() .. ')' .. ' VIB (0.0.1)'
+    --e.cline_mode_data = 'PCRE2 (' .. rex.version() .. ')' .. ' VIB (0.0.1)'
 end
-keys[27] = {handle=esc_handle}
+mode_keymaps[1][{27}] = {handle=esc_handle}
+mode_keymaps[2][{27}] = {handle=esc_handle}
+mode_keymaps[3][{27}] = {handle=esc_handle}
+mode_keymaps[4][{27}] = {handle=esc_handle}
+mode_keymaps[5][{27}] = {handle=esc_handle}
+mode_keymaps[6][{27}] = {handle=esc_handle}
+mode_keymaps[7][{27}] = {handle=esc_handle}
 
 -- Backspace
 function backspace_handle(e)
-    if e.mode == 0 then
+    if e.mode == 1 then
         for i, c in ipairs(e.cursors) do
             c:move(-1, 0, e)
         end
-    elseif e.mode == 1 then
+    elseif e.mode == 2 then
         for i, c in ipairs(e.cursors) do
             if c.horizontal == 1 and #e.cursors == 1 then
                 if c.line ~= 1 then
@@ -146,22 +163,18 @@ function backspace_handle(e)
                 end
             end
         end
-    elseif e.mode == 5 then
-        e.active_window.status = e.active_window.status:sub(1, -2)
+    elseif e.mode == 6 then
+        e.cline_mode_data = e.cline_mode_data:sub(1, -2)
+        commands:keypress(e)
     end
-    --e.active_window.status = e.active_cursor:get_contents(e.active_window.contents)
 end
-keys[127] = {handle=backspace_handle}
-
--- Tab
-function tab_handle(e)
-    if input_mode_key(e, "    ") then return end
-end
-keys[9] = {handle=tab_handle}
+mode_keymaps[1][{127}] = {handle=backspace_handle}
+mode_keymaps[2][{127}] = {handle=backspace_handle}
+mode_keymaps[6][{127}] = {handle=backspace_handle}
 
 -- Enter
 function enter_handle(e)
-    if e.mode == 1 then
+    if e.mode == 2 then
         for i, c in ipairs(e.cursors) do
             table.insert(e.active_window.contents, c.line + 1, " ")
             -- Move all the following cursors on different lines
@@ -172,37 +185,33 @@ function enter_handle(e)
             end
             c:move(0, 1, e)
         end
-    elseif e.mode == 5 then
+    elseif e.mode == 6 then
         commands:process(e)
     end
 end
-keys[13] = {handle=enter_handle}
+mode_keymaps[2][{13}] = {handle=enter_handle}
+mode_keymaps[6][{13}] = {handle=enter_handle}
 
 -- Forward Slash
 function forward_slash_handle(e)
-    if input_mode_key(e, '/') then return end
-    if e.mode == 0 or e.mode == 2 then
-        e.last_mode = e.mode
-        e.mode = 5
-        e.active_window.status = "/"
-    end
+    e.last_mode = e.mode
+    e.mode = 6
+    e.cline_mode_data = ":x/"
 end
-keys[47] = {handle=forward_slash_handle}
+mode_keymaps[1][{47}] = {handle=forward_slash_handle}
+mode_keymaps[3][{47}] = {handle=forward_slash_handle}
 
 -- Colon
 function colon_handle(e)
-    if input_mode_key(e, ':') then return end
-    if e.mode == 0 then
-        e.last_mode = e.mode
-        e.mode = 5
-        e.active_window.status = ":"
-    end
+    e.last_mode = e.mode
+    e.mode = 6
+    e.cline_mode_data = ":"
 end
-keys[58] = {handle=colon_handle}
+mode_keymaps[1][{58}] = {handle=colon_handle}
 
 -- Ctrl + J
 function ctrl_j_handle(e)
-    if e.mode == 0 and e.active_cursor.line < #e.active_window.contents then
+    if e.active_cursor.line < #e.active_window.contents then
         -- Need to check if there already is a cursor here
         table.insert(e.cursors, cursor:new{
             line=e.active_cursor.line+1,
@@ -216,11 +225,11 @@ function ctrl_j_handle(e)
         table.sort(e.cursors, e.compare_cursors)
     end
 end
-keys[10] = {handle=ctrl_j_handle}
+mode_keymaps[1][{10}] = {handle=ctrl_j_handle}
 
 -- Ctrl + K
 function ctrl_k_handle(e)
-    if e.mode == 0 and e.active_cursor.line > 1 then
+    if e.active_cursor.line > 1 then
         -- Need to check if there already is a cursor here
         table.insert(e.cursors, cursor:new{
             line=e.active_cursor.line-1,
@@ -234,25 +243,50 @@ function ctrl_k_handle(e)
         table.sort(e.cursors, e.compare_cursors)
     end
 end
-keys[11] = {handle=ctrl_k_handle}
+mode_keymaps[1][{11}] = {handle=ctrl_k_handle}
 
 -- V
 function v_handle(e)
-    if input_mode_key(e, "v") then return end
-    if e.mode == 0 then
-        e.mode = 2
+    e.mode = 3
+    for i, c in ipairs(e.cursors) do
+        c:zero_range()
+        c.range = true
+    end
+end
+mode_keymaps[1][{118}] = {handle=v_handle}
+
+-- Tab
+function tab_handle(e)
+    insert_mode_default(e, "    ")
+end
+mode_keymaps[1][{9}] = {handle=v_handle}
+mode_keymaps[2][{9}] = {handle=tab_handle}
+mode_keymaps[3][{9}] = {handle=esc_handle}
+
+-- Ctrl+U
+function ctrl_u_handle(e)
+    if #e.cursors > 1 then
+        -- Sort
+        table.sort(e.cursors, e.compare_cursors)
+        
         for i, c in ipairs(e.cursors) do
-            c:zero_range()
-            c.range = true
+            if c == e.active_cursor then
+                if i ~= 1 then
+                    e.active_cursor = e.cursors[i - 1]
+                else
+                    e.active_cursor = e.cursors[#e.cursors]
+                end
+                return
+            end
         end
     end
 end
-keys[118] = {handle=v_handle}
+mode_keymaps[1][{21}] = {handle=ctrl_u_handle}
+mode_keymaps[3][{21}] = {handle=ctrl_u_handle}
 
--- N
-function n_handle(e)
-    if input_mode_key(e, "n") then return end
-    if (e.mode == 0 or e.mode == 2) and #e.cursors > 1 then
+-- Ctrl+D
+function ctrl_d_handle(e)
+    if #e.cursors > 1 then
         -- Sort
         table.sort(e.cursors, e.compare_cursors)
         
@@ -268,190 +302,135 @@ function n_handle(e)
         end
     end
 end
-keys[110] = {handle=n_handle}
+mode_keymaps[1][{4}] = {handle=ctrl_d_handle}
+mode_keymaps[3][{4}] = {handle=ctrl_d_handle}
 
 -- Q
 function q_handle(e)
-    if input_mode_key(e, "q") then return end
-    if e.mode == 0 and #e.cursors > 1 then
+    if #e.cursors > 1 then
         table.remove(e.cursors, 1)
     end
 end
-keys[113] = {handle=q_handle}
+mode_keymaps[1][{113}] = {handle=q_handle}
 
 -- Shift+H
 function shift_h_handle(e)
-    if input_mode_key(e, "H") then return end
-    if e.mode == 0 then
-        for i, c in ipairs(e.cursors) do
-            char_horizontal, _, _ = rex.find(e.active_window.contents[c.line], "[^\\s]")
-            c:move_abs(char_horizontal, nil, e)
-        end
+    for i, c in ipairs(e.cursors) do
+        char_horizontal, _, _ = rex.find(e.active_window.contents[c.line], "[^\\s]")
+        c:move_abs(char_horizontal, nil, e)
     end
 end
-keys[72] = {handle=shift_h_handle}
+mode_keymaps[1][{72}] = {handle=shift_h_handle}
 
 -- S
 function s_handle(e)
-    if input_mode_key(e, 's') then return end
     x_handle(e)
     i_handle(e)
 end
-keys[115] = {handle=s_handle}
+mode_keymaps[1][{115}] = {handle=s_handle}
 
 -- I
 function i_handle(e)
-    if input_mode_key(e, "i") then return end
-    if e.mode == 0 then
-        for i, c in ipairs(e.cursors) do
-            if e.active_window.contents[c.line]:len() == 0 then
-                e.active_window.contents[c.line] = " "
-            end
+    for i, c in ipairs(e.cursors) do
+        if e.active_window.contents[c.line]:len() == 0 then
+            e.active_window.contents[c.line] = " "
         end
-        e.mode = 1
     end
+    e.mode = 2
 end
-keys[105] = {handle=i_handle}
+mode_keymaps[1][{105}] = {handle=i_handle}
 
 -- A
 function a_handle(e)
-    if input_mode_key(e, "a") then return end
-    if e.mode == 0 then
-        --If at end of line
-        for i, c in ipairs(e.cursors) do
-            if c.horizontal == e.active_window.contents[c.line]:len() then
-                e.active_window.contents[c.line] = e.active_window.contents[c.line] .. " "
-            end
-            c:move(1, 0, e)
+    --If at end of line
+    for i, c in ipairs(e.cursors) do
+        if c.horizontal == e.active_window.contents[c.line]:len() then
+            e.active_window.contents[c.line] = e.active_window.contents[c.line] .. " "
         end
-        e.mode = 1
+        c:move(1, 0, e)
     end
+    e.mode = 2
 end
-keys[97] = {handle=a_handle}
+mode_keymaps[1][{97}] = {handle=a_handle}
 
 -- H
 function h_handle(e)
-    if input_mode_key(e, "h") then return end
-    if e.mode == 0 or e.mode == 3 then
-        -- Command mode or numerical mode
-        for i, c in ipairs(e.cursors) do
-            c:move(-e.numerical_mode_data, 0, e)
-        end
-        if e.mode == 3 then
-            esc_handle(e)
-        end
-    elseif e.mode == 2 then
-        -- Visual mode
-        for i, c in ipairs(e.cursors) do
-            c:move(-1, 0, e)
-        end
+    for i, c in ipairs(e.cursors) do
+        c:move(-e.numerical_mode_data, 0, e)
     end
 end
-keys[104] = {handle=h_handle}
+mode_keymaps[1][{104}] = {handle=h_handle}
+mode_keymaps[3][{104}] = {handle=h_handle}
+mode_keymaps[4][{104}] = {handle=h_handle,late_handle=esc_handle}
 
 -- L
 function l_handle(e)
-    if input_mode_key(e, "l") then return end
-    if e.mode == 0 or e.mode == 3 then
-        -- Command mode or numerical mode
-        for i, c in ipairs(e.cursors) do
-            c:move(e.numerical_mode_data, 0, e)
-        end
-        if e.mode == 3 then
-            esc_handle(e)
-        end
-    elseif e.mode == 2 then
-        -- Visual mode
-        for i, c in ipairs(e.cursors) do
-            c:move(1, 0, e)
-        end
+    for i, c in ipairs(e.cursors) do
+        c:move(e.numerical_mode_data, 0, e)
     end
 end
-keys[108] = {handle=l_handle}
+mode_keymaps[1][{108}] = {handle=l_handle}
+mode_keymaps[3][{108}] = {handle=l_handle}
+mode_keymaps[4][{108}] = {handle=l_handle,late_handle=esc_handle}
  
 -- J
 function j_handle(e)
-    if input_mode_key(e, "j") then return end
-    if e.mode == 0 or e.mode == 3 then
-        for i, c in ipairs(e.cursors) do
-            c:move(0, e.numerical_mode_data, e)
-        end
-        if e.mode == 3 then
-            esc_handle(e)
-        end
-    elseif e.mode == 2 then
-        -- Visual mode
-        for i, c in ipairs(e.cursors) do
-            c:move(0, 1, e)
-        end
+    for i, c in ipairs(e.cursors) do
+        c:move(0, e.numerical_mode_data, e)
     end
 end
-keys[106] = {handle=j_handle}
+mode_keymaps[1][{106}] = {handle=j_handle}
+mode_keymaps[3][{106}] = {handle=j_handle}
+mode_keymaps[4][{106}] = {handle=j_handle,late_handle=esc_handle}
 
 -- K
 function k_handle(e)
-    if input_mode_key(e, "k") then return end
-    if e.mode == 0 or e.mode == 3 then
-        for i, c in ipairs(e.cursors) do
-            c:move(0, -e.numerical_mode_data, e)
-        end
-        if e.mode == 3 then
-            esc_handle(e)
-        end
-    elseif e.mode == 2 then
-        -- Visual mode
-        for i, c in ipairs(e.cursors) do
-            c:move(0, -1, e)
-        end
+    for i, c in ipairs(e.cursors) do
+        c:move(0, -e.numerical_mode_data, e)
     end
 end
-keys[107] = {handle=k_handle}
+mode_keymaps[1][{107}] = {handle=k_handle}
+mode_keymaps[3][{107}] = {handle=k_handle}
+mode_keymaps[4][{107}] = {handle=k_handle,late_handle=esc_handle}
 
 -- X
 function x_handle(e)
-    if input_mode_key(e, "x") then return end
-    if e.mode == 0 or e.mode == 2 or e.mode == 4 then
-        for i, c in ipairs(e.cursors) do
-            c:set_contents(e.active_window.contents, "")
-            
-            -- Make sure cursor isn't out of bounds
-            c:sort_sides()
-            c:zero_range()
-            c:move(0, 0, e)
-            c.real_horizontal = c.horizontal
-        end
-        if e.mode == 2 then
-            esc_handle(e)
-        end
+    for i, c in ipairs(e.cursors) do
+        c:set_contents(e.active_window.contents, "")
+        
+        -- Make sure cursor isn't out of bounds
+        c:sort_sides()
+        c:zero_range()
+        c:move(0, 0, e)
+        c.real_horizontal = c.horizontal
     end
 end
-keys[120] = {handle=x_handle}
+mode_keymaps[1][{120}] = {handle=x_handle}
+mode_keymaps[3][{120}] = {handle=x_handle,late_handle=esc_handle}
+mode_keymaps[5][{120}] = {handle=x_handle}
 
 -- O
 function o_handle(e)
-    if input_mode_key(e, "o") then return end
-    if e.mode == 0 then
+    if e.mode == 1 then
         table.insert(e.active_window.contents, e.active_cursor.line + 1, " ")
-        e.mode = 1
+        e.mode = 2
         e.active_cursor:move(0, 1, e)
-    elseif e.mode == 2 then
+    elseif e.mode == 3 then
         for i, c in ipairs(e.cursors) do
             c:swap_sides()
         end
     end
 end
-keys[111] = {handle=o_handle}
+mode_keymaps[1][{111}] = {handle=o_handle}
+mode_keymaps[3][{111}] = {handle=o_handle}
 
 -- Shift+O
 function shift_o_handle(e)
-    if input_mode_key(e, "O") then return end
-    if e.mode == 0 then
-        table.insert(e.active_window.contents, e.active_cursor.line, " ")
-        e.mode = 1
-        e.active_cursor:move(0, 0, e)
-    end
+    table.insert(e.active_window.contents, e.active_cursor.line, " ")
+    e.mode = 2
+    e.active_cursor:move(0, 0, e)
 end
-keys[79] = {handle=shift_o_handle}
+mode_keymaps[1][{79}] = {handle=shift_o_handle}
 
 -- D
 function d_handle_immed(e)
@@ -460,28 +439,27 @@ function d_handle_immed(e)
         c.range = false
         c:zero_range()
     end
-    e.mode = 0
+    esc_handle(e)
 end
 function d_handle(e)
-    if input_mode_key(e, "d") then return end
-    if e.mode == 4 then
+    if e.mode == 5 then
         for i=#e.cursors,1,-1 do
             table.remove(e.active_window.contents, e.cursors[i].line)
             e.cursors[i]:move(0, 0, e)
         end
         e.mode = 0
-    elseif e.mode == 0 then
-        e.mode = 4
-        e.verb_mode_data.verb = d_handle_immed
+    elseif e.mode == 1 then
+        e.mode = 5
+        e.verb_mode_data = d_handle_immed
         for i, c in ipairs(e.cursors) do
             c:zero_range()
             c.range = true
         end
-    elseif e.mode == 2 then
-        x_handle(e)
     end
 end
-keys[100] = {handle=d_handle}
+mode_keymaps[1][{100}] = {handle=d_handle}
+mode_keymaps[3][{100}] = {handle=x_handle}
+mode_keymaps[5][{100}] = {handle=d_handle}
 
 -- F
 function f_handle_wfk(e, val)
@@ -492,22 +470,21 @@ function f_handle_wfk(e, val)
             c:move(offset, 0, e)
         end
     end
-    if e.last_mode == 4 then
-        e.mode = 2
-        e.verb_mode_data.verb(e)
+    if e.last_mode == 5 then
+        e.mode = 3
+        e.verb_mode_data(e)
     else
         esc_handle(e)
     end
 end
 function f_handle(e)
-    if input_mode_key(e, "f") then return end
-    if e.mode == 0 or e.mode == 2 or e.mode == 4 then
-        e.last_mode = e.mode
-        e.mode = 6
-        e.wfk_mode_data = f_handle_wfk
-    end
+    e.last_mode = e.mode
+    e.mode = 7
+    e.wfk_mode_data = f_handle_wfk
 end
-keys[102] = {handle=f_handle}
+mode_keymaps[1][{102}] = {handle=f_handle}
+mode_keymaps[3][{102}] = {handle=f_handle}
+mode_keymaps[5][{102}] = {handle=f_handle}
 
 -- Shift+F
 function shift_f_handle_wfk(e, val)
@@ -518,22 +495,21 @@ function shift_f_handle_wfk(e, val)
             c:move(-offset, 0, e)
         end
     end
-    if e.last_mode == 4 then
-        e.mode = 2
-        e.verb_mode_data.verb(e)
+    if e.last_mode == 5 then
+        e.mode = 3
+        e.verb_mode_data(e)
     else
         esc_handle(e)
     end
 end
 function shift_f_handle(e)
-    if input_mode_key(e, "F") then return end
-    if e.mode == 0 or e.mode == 2 or e.mode == 4 then
-        e.last_mode = e.mode
-        e.mode = 6
-        e.wfk_mode_data = shift_f_handle_wfk
-    end
+    e.last_mode = e.mode
+    e.mode = 7
+    e.wfk_mode_data = shift_f_handle_wfk
 end
-keys[70] = {handle=shift_f_handle}
+mode_keymaps[1][{70}] = {handle=shift_f_handle}
+mode_keymaps[3][{70}] = {handle=shift_f_handle}
+mode_keymaps[5][{70}] = {handle=shift_f_handle}
 
 -- R
 function r_handle_wfk(e, val)
@@ -557,34 +533,26 @@ function r_handle_wfk(e, val)
     esc_handle(e)
 end
 function r_handle(e)
-    if input_mode_key(e, "r") then return end
-    if e.mode == 0 or e.mode == 2 then
-        e.last_mode = e.mode
-        e.mode = 6
-        e.wfk_mode_data = r_handle_wfk
-    end
+    e.last_mode = e.mode
+    e.mode = 7
+    e.wfk_mode_data = r_handle_wfk
 end
-keys[114] = {handle=r_handle}
+mode_keymaps[1][{114}] = {handle=r_handle}
+mode_keymaps[3][{114}] = {handle=r_handle}
 
 -- Shift+A
 function shift_a_handle(e)
-    if input_mode_key(e, "A") then return end
-    if e.mode == 0 then
-        dollar_handle(e)
-        a_handle(e)
-    end
+    dollar_handle(e)
+    a_handle(e)
 end
-keys[65] = {handle=shift_a_handle}
+mode_keymaps[1][{65}] = {handle=shift_a_handle}
 
 -- Shift+I
 function shift_i_handle(e)
-    if input_mode_key(e, "I") then return end
-    if e.mode == 0 then
-        zero_handle(e)
-        i_handle(e)
-    end
+    zero_handle(e)
+    i_handle(e)
 end
-keys[73] = {handle=shift_i_handle}
+mode_keymaps[1][{73}] = {handle=shift_i_handle}
 
 -- E
 --function e_handle(e)
@@ -593,4 +561,15 @@ keys[73] = {handle=shift_i_handle}
 --    end
 --end
 
-return keys
+-- G
+function g_handle(e)
+    -- Given, check each for regex
+    if #e.cursors > 1 then
+        e.last_mode = e.mode
+        e.mode = 6
+        e.cline_mode_data = ":g/"
+    end
+end
+mode_keymaps[3][{103}] = {handle=g_handle}
+
+return mode_keymaps

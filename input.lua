@@ -4,18 +4,16 @@ local keys = require "keys"
 local cursor = require "cursor"
 
 local input = {}
--- 0 = Command, 1 = Insert, 2 = Visual (same for all cursors)
--- 3 = Numerical, 4 = Visual-Immediate, 5 = Command Line (for config, etc)
--- 6 = WFK (for commands like f, r, m, etc., which need one key input)
+-- 1 = Command, 2 = Insert, 3 = Visual (same for all cursors)
+-- 4 = Numerical, 5 = Visual-Immediate, 6 = Command Line (for config, etc)
+-- 7 = WFK (for commands like f, r, m, etc., which need one key input)
 input.mode_names = {"COMMAND", "INSERT", "VISUAL", "NUMERICAL", "V-IMMEDIATE", "C-LINE", "WFK"}
-input.mode = 0
+input.mode = 1
 input.last_mode = 0
 input.numerical_mode_data = 1
-input.verb_mode_data = {
-    verb = nil,
-    adjectives = {}
-}
+input.verb_mode_data = nil
 input.wfk_mode_data = nil
+input.cline_mode_data = ""
 
 input.active_window = nil
 
@@ -45,11 +43,20 @@ end
 function input:loop()
     local c = renderer:getch()
     
-    if keys[c] ~= nil then
-        keys[c].handle(self)
-    else
-        self.active_window.status = "Unknown key code: " .. c
+    for k, v in pairs(keys[self.mode]) do
+        if k[1] == c then
+            if v.params ~= nil then
+                v.handle(self, unpack(v.params))
+            else
+                v.handle(self)
+            end
+            if v.late_handle ~= nil then
+                v.late_handle(self)
+            end
+            return
+        end
     end
+    --self.active_window.status = "Unknown key code: " .. c
 end
 
 return input

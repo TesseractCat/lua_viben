@@ -10,6 +10,7 @@ cursor.prototype.alt_horizontal = 1
 cursor.prototype.alt_real_horizontal = 1
 
 cursor.prototype.range = false
+cursor.prototype.visible = true
 
 cursor.mt = {}
 cursor.mt.__index = cursor.prototype

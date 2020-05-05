@@ -39,17 +39,20 @@ function renderer:redraw(e)
     self.scr:clear()
     
     -- Draw mode
-    mode_string = curses.chstr(string.len(e.mode_names[e.mode + 1] .. " MODE"))
-    mode_string:set_str(0, e.mode_names[e.mode + 1] .. " MODE", curses.A_BOLD)
+    mode_string = curses.chstr(string.len(e.mode_names[e.mode] .. " MODE"))
+    mode_string:set_str(0, e.mode_names[e.mode] .. " MODE", curses.A_BOLD)
     _, width = self.scr:getmaxyx()
     self.scr:mvaddchstr(1, math.floor(width/2 - mode_string:len()/2), mode_string)
     
     -- Draw status
-    self.scr:mvaddstr(1, 2, self.windows[1].status)
+    if e.mode ~= 6 then
+        self.scr:mvaddstr(1, 2, self.windows[1].status)
+    end
 
     -- Draw C-LINE mode cursor
-    if e.mode == 5 then
-        self.scr:mvaddstr(1, e.active_window.status:len() + 2, "|")
+    if e.mode == 6 then
+        self.scr:mvaddstr(1, 2, e.cline_mode_data)
+        self.scr:mvaddstr(1, e.cline_mode_data:len() + 2, "|")
     end
     
     -- Draw column numbers
@@ -81,7 +84,7 @@ function renderer:redraw(e)
         
         for k=#e.cursors,1,-1 do
             local c = e.cursors[k]
-            if c:get_line_range(i) ~= nil then
+            if c:get_line_range(i) ~= nil and c.visible then
                 -- Draw selection
                 local range = c:get_line_range(i)
                 cs:set_str(range[1]-1, string.sub(v,range[1],range[2]), curses.color_pair(1))
@@ -89,7 +92,7 @@ function renderer:redraw(e)
                 -- Draw cursor head
                 if c.line == i then
                     if c == e.active_cursor then
-                        if e.mode ~= 1 or true then
+                        if e.mode ~= 2 or true then
                             cs:set_str(c.horizontal-1, string.sub(v,c.horizontal,c.horizontal), curses.color_pair(2))
                         else
                             cs:set_str(c.horizontal-1, string.sub(v,c.horizontal,c.horizontal), curses.A_UNDERLINE)
